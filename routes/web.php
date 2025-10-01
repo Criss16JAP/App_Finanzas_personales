@@ -1,21 +1,26 @@
 <?php
 
-// routes/web.php
-
-use App\Http\Controllers\AccountController;
+use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\MovementController;
 
 Route::get('/', function () {
     return view('welcome');
 });
 
+Route::get('/dashboard', function () {
+    return view('dashboard');
+})->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
-    // ... (otras rutas protegidas como el dashboard)
-
-    // Rutas para el Módulo de Cuentas
-    Route::resource('accounts', AccountController::class)->only([
-        'index', 'store', 'edit', 'update', 'destroy'
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::resource('categories', CategoryController::class)->only([
+    'index', 'store', 'edit', 'update', 'destroy']);
+    Route::resource('movements', MovementController::class)->only([
+        'index', 'store'
     ]);
 });
 
