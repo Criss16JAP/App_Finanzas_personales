@@ -27,6 +27,7 @@ class CreditController extends Controller
             'principal_amount' => 'required|numeric|min:0.01',
             'interest_rate' => 'required|numeric|min:0',
             'term_months' => 'required|integer|min:1',
+            'fixed_monthly_fee' => 'nullable|numeric|min:0', // <-- AÑADIR
             'issued_date' => 'required|date',
             'payment_day_of_month' => 'required|integer|min:1|max:31',
             'account_id_deposit' => 'required|exists:accounts,id',

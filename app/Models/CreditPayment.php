@@ -11,8 +11,13 @@ class CreditPayment extends Model
     use HasFactory;
 
     protected $fillable = [
-        'credit_id', 'movement_id', 'amount_paid',
-        'principal_paid', 'interest_paid', 'payment_date',
+        'credit_id',
+        'movement_id',
+        'amount_paid',
+        'principal_paid',
+        'interest_paid',
+        'fee_paid',
+        'payment_date',
     ];
 
     protected $casts = [
