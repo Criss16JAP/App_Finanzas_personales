@@ -82,13 +82,17 @@
 
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900">
-                    <h3 class="text-lg font-medium mb-4">Créditos Activos</h3>
+                    <h3 class="text-lg font-medium">Créditos Activos</h3>
+                    <a href="{{ route('credits.history') }}"
+                        class="inline-flex items-center px-4 py-2 bg-gray-200 rounded-md font-semibold text-xs text-gray-800 uppercase hover:bg-gray-300">
+                        Ver Historial
+                    </a>
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200">
-                            <thead>
+                            <thead class="bg-gray-50">
                                 <tr>
                                     <th class="px-6 py-3 text-left text-xs uppercase">Nombre</th>
-                                    <th class="px-6 py-3 text-left text-xs uppercase">Fecha de Emisión</th>
+                                    <th class="px-6 py-3 text-left text-xs uppercase">Tasa Interés</th>
                                     <th class="px-6 py-3 text-right text-xs uppercase">Monto Original</th>
                                     <th class="px-6 py-3 text-right text-xs uppercase">Saldo Actual</th>
                                     <th class="px-6 py-3 text-right text-xs uppercase">Acciones</th>
@@ -97,8 +101,14 @@
                             <tbody class="divide-y divide-gray-200">
                                 @forelse ($credits as $credit)
                                     <tr>
-                                        <td class="px-6 py-4">{{ $credit->name }}</td>
-                                        <td class="px-6 py-4">{{ $credit->issued_date->format('d/m/Y') }}</td>
+                                        <td class="px-6 py-4">
+                                            <a href="{{ route('credits.show', $credit) }}"
+                                                class="font-semibold text-indigo-600 hover:underline">
+                                                {{ $credit->name }}
+                                            </a>
+                                        </td>
+                                        <td class="px-6 py-4 text-center">
+                                            {{ number_format($credit->interest_rate * 100, 2) }} %</td>
                                         <td class="px-6 py-4 text-right">
                                             ${{ number_format($credit->principal_amount, 2) }}</td>
                                         <td class="px-6 py-4 text-right font-bold text-orange-600">
@@ -126,28 +136,43 @@
         </div>
     </div>
 
-    <div id="paymentModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden">
-        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+    <div id="paymentModal"
+        class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 hidden opacity-0 invisible transition-opacity duration-300 ease-in-out">
+        <div id="modalBox"
+            class="p-6 border shadow-lg rounded-xl bg-white w-full max-w-md transform scale-95 transition-transform duration-300 ease-in-out">
             <h3 class="text-lg text-center font-medium text-gray-900" id="modalTitle">Realizar Pago</h3>
             <form id="paymentForm" method="POST" class="mt-4">
                 @csrf
+                @if ($paymentCategory ?? null)
+                    <input type="hidden" name="category_id" value="{{ $paymentCategory->id }}">
+                @else
+                @endif
                 <div class="mb-4">
-                    <label>Monto a Pagar</label>
+                    <div class="flex justify-between items-center mb-1">
+                        <label for="paymentAmount">Monto a Pagar</label>
+                        <a href="#" id="payFullAmountBtn" class="text-sm text-blue-600 hover:underline">Pagar
+                            Total</a>
+                    </div>
                     <input type="number" name="amount" id="paymentAmount" step="0.01" min="0.01"
-                        class="w-full px-3 py-2 border rounded" required>
+                        class="w-full px-3 py-2 border rounded-md" required>
                 </div>
                 <div class="mb-4">
-                    <label>Pagar desde la Cuenta</label>
-                    <select name="account_id" class="w-full px-3 py-2 border rounded" required>
+                    <label for="account_id">Pagar desde la Cuenta</label>
+                    <select name="account_id" id="account_id" class="mt-1 w-full px-3 py-2 border rounded-md"
+                        required>
                         <option value="">Selecciona una cuenta</option>
                         @foreach ($accounts as $account)
                             <option value="{{ $account->id }}">{{ $account->name }}</option>
                         @endforeach
                     </select>
                 </div>
-                <div class="flex justify-end space-x-4">
-                    <button type="button" id="closeModal" class="px-4 py-2 bg-gray-200 rounded">Cancelar</button>
-                    <button type="submit" class="px-4 py-2 bg-green-500 text-white rounded">Confirmar Pago</button>
+                <div class="mt-6 flex justify-end space-x-4">
+                    <button type="button" id="closeModal"
+                        class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md font-semibold text-xs uppercase hover:bg-gray-300">Cancelar</button>
+                    <button type="submit"
+                        class="inline-flex items-center px-4 py-2 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700">
+                        Confirmar Pago
+                    </button>
                 </div>
             </form>
         </div>
@@ -156,30 +181,58 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const modal = document.getElementById('paymentModal');
+            const modalBox = document.getElementById('modalBox');
             const closeModalBtn = document.getElementById('closeModal');
             const payButtons = document.querySelectorAll('.pay-button');
             const paymentForm = document.getElementById('paymentForm');
             const modalTitle = document.getElementById('modalTitle');
             const paymentAmountInput = document.getElementById('paymentAmount');
+            const payFullAmountBtn = document.getElementById('payFullAmountBtn');
+
+            let currentBalanceForModal = 0;
+
+            const openModal = () => {
+                modal.classList.remove('hidden');
+                setTimeout(() => {
+                    modal.classList.remove('opacity-0', 'invisible');
+                    modalBox.classList.remove('scale-95');
+                }, 10);
+            };
+
+            const closeModal = () => {
+                modal.classList.add('opacity-0');
+                modalBox.classList.add('scale-95');
+                setTimeout(() => {
+                    modal.classList.add('hidden', 'invisible');
+                }, 300);
+            };
 
             payButtons.forEach(button => {
                 button.addEventListener('click', function() {
                     const creditId = this.dataset.creditId;
                     const creditName = this.dataset.creditName;
-                    const currentBalance = parseFloat(this.dataset.currentBalance);
+                    currentBalanceForModal = parseFloat(this.dataset.currentBalance);
 
                     paymentForm.action = `/credits/${creditId}/pay`;
                     modalTitle.textContent = `Pagar: ${creditName}`;
-                    paymentAmountInput.max = currentBalance;
-                    paymentAmountInput.placeholder = `Máximo: ${currentBalance.toFixed(2)}`;
+                    paymentAmountInput.max = currentBalanceForModal;
+                    paymentAmountInput.value = '';
+                    paymentAmountInput.placeholder = `Máximo: ${currentBalanceForModal.toFixed(2)}`;
 
-                    modal.classList.remove('hidden');
+                    openModal();
                 });
             });
 
-            closeModalBtn.addEventListener('click', () => modal.classList.add('hidden'));
+            payFullAmountBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                paymentAmountInput.value = currentBalanceForModal.toFixed(2);
+            });
+
+            closeModalBtn.addEventListener('click', closeModal);
             window.addEventListener('click', (event) => {
-                if (event.target == modal) modal.classList.add('hidden');
+                if (event.target == modal) {
+                    closeModal();
+                }
             });
         });
     </script>

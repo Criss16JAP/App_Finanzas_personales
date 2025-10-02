@@ -22,6 +22,7 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     Route::get('/movements/history', [MovementController::class, 'history'])->name('movements.history');
+    Route::get('/credits/history', [CreditController::class, 'history'])->name('credits.history');
 
     // Rutas para Cuentas
     Route::resource('accounts', AccountController::class)->only(['index', 'store', 'edit', 'update', 'destroy']);
@@ -34,7 +35,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('movements', MovementController::class)->only(['index', 'store', 'edit', 'update', 'destroy']);
 
     // Rutas para Créditos
-    Route::resource('credits', CreditController::class)->only(['index', 'store']);
+    Route::resource('credits', CreditController::class)->only(['index', 'store', 'show']);
     Route::post('/credits/{credit}/pay', [CreditController::class, 'pay'])->name('credits.pay');
 
     // Rutas para Préstamos

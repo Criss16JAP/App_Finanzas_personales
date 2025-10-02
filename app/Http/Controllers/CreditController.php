@@ -15,9 +15,29 @@ class CreditController extends Controller
 
     public function index()
     {
-        $data = $this->creditService->getDataForCreditView(Auth::user());
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        $data = $this->creditService->getDataForCreditView($user);
+        // Buscamos la categoría y la añadimos a los datos que van a la vista
+        $data['paymentCategory'] = $user->categories()->where('name', 'Pago de Créditos')->first();
+
         return view('credits.index', $data);
     }
+
+    public function history()
+{
+    /** @var \App\Models\User $user */
+    $user = Auth::user();
+
+    $credits = $user
+        ->credits()
+        ->where('status', 'paid') // <-- La clave: solo obtenemos los pagados
+        ->orderBy('issued_date', 'desc')
+        ->paginate(15);
+
+    return view('credits.history', compact('credits'));
+}
 
     public function store(Request $request)
     {
@@ -43,10 +63,9 @@ class CreditController extends Controller
 
     public function pay(Request $request, Credit $credit)
     {
-        /** @var \App\Models\User $user */ // <-- CORRECCIÓN AÑADIDA AQUÍ
+        /** @var \App\Models\User $user */
         $user = Auth::user();
 
-        // Seguridad
         if ($user->id !== $credit->user_id) {
             abort(403);
         }
@@ -56,7 +75,6 @@ class CreditController extends Controller
             'account_id' => 'required|exists:accounts,id',
         ]);
 
-        // Asumimos que existe una categoría para los pagos de créditos
         $paymentCategory = $user->categories()->where('name', 'Pago de Créditos')->first();
         if (!$paymentCategory) {
             return back()->with('error', 'Por favor, crea una categoría de gasto llamada "Pago de Créditos".');
@@ -64,11 +82,26 @@ class CreditController extends Controller
         $validatedData['category_id'] = $paymentCategory->id;
 
         try {
-            $this->creditService->addPayment($credit, $validatedData);
+            $this->creditService->addPayment($credit, $validatedData); // Ahora solo llamamos a addPayment
             return back()->with('success', '¡Pago registrado exitosamente!');
         } catch (\Exception $e) {
             return back()->with('error', 'Error al registrar el pago: ' . $e->getMessage());
         }
+    }
+
+    // Muestra la página de detalle para un crédito específico.
+
+    public function show(Credit $credit)
+    {
+        // Seguridad: Verificar que el crédito pertenece al usuario autenticado
+        if (Auth::id() !== $credit->user_id) {
+            abort(403);
+        }
+
+        // Le pedimos al servicio todos los datos calculados para la vista de detalle
+        $data = $this->creditService->getDataForCreditDetailView($credit);
+
+        return view('credits.show', $data);
     }
 
 }

@@ -85,24 +85,24 @@ class CreditService
             $paymentAmount = $data['amount'];
             $amountRemaining = $paymentAmount;
 
-            // --- Lógica de Distribución del Pago ---
+            // --- Lógica de Distribución Inteligente ---
 
-            // 1. Prioridad 1: Cubrir el Cargo Fijo Mensual
-            $feePaid = min($amountRemaining, $credit->fixed_monthly_fee);
+            // 1. Prioridad 1: Pagar las tarifas fijas pendientes
+            $feePaid = min($amountRemaining, $credit->accrued_fee_balance);
+            $credit->accrued_fee_balance -= $feePaid;
             $amountRemaining -= $feePaid;
 
-            // 2. Prioridad 2: Cubrir los Intereses del Periodo
-            // (Modelo simple: interés mensual sobre el saldo actual antes del pago)
-            $interestThisPeriod = $credit->current_balance * $credit->interest_rate;
-            $interestPaid = min($amountRemaining, $interestThisPeriod);
+            // 2. Prioridad 2: Pagar los intereses pendientes
+            $interestPaid = min($amountRemaining, $credit->accrued_interest_balance);
+            $credit->accrued_interest_balance -= $interestPaid;
             $amountRemaining -= $interestPaid;
 
-            // 3. Prioridad 3: El resto se abona a Capital
+            // 3. Prioridad 3: El resto es abono a capital
             $principalPaid = $amountRemaining;
 
             // --- Actualización y Registro ---
 
-            // 4. Crear el movimiento de GASTO por el monto total pagado
+            // 4. Crear el movimiento de GASTO
             $movementData = [
                 'type' => 'egress',
                 'amount' => $paymentAmount,
@@ -113,15 +113,15 @@ class CreditService
             ];
             $movement = $this->movementService->createMovement($movementData, $credit->user);
 
-            // 5. Actualizar el saldo del crédito (solo se reduce el capital)
-            $credit->current_balance -= $principalPaid;
-            if ($credit->current_balance <= 0) {
+            // 5. Actualizar el saldo total del crédito
+            $credit->current_balance -= $paymentAmount; // Se reduce el monto total pagado
+            if ($credit->current_balance < 0.01) {
                 $credit->current_balance = 0;
                 $credit->status = 'paid';
             }
             $credit->save();
 
-            // 6. Crear el registro detallado del pago con el desglose
+            // 6. Crear el registro detallado del pago
             $credit->payments()->create([
                 'movement_id' => $movement->id,
                 'amount_paid' => $paymentAmount,
@@ -131,5 +131,50 @@ class CreditService
                 'payment_date' => now(),
             ]);
         });
+    }
+
+    public function getDataForCreditDetailView(Credit $credit)
+    {
+        // Cargar los pagos para evitar consultas adicionales
+        $payments = $credit->payments;
+
+        // 1. Calcular los totales pagados hasta la fecha
+        $totalPrincipalPaid = $payments->sum('principal_paid');
+        $totalInterestPaid = $payments->sum('interest_paid');
+        $totalFeesPaid = $payments->sum('fee_paid');
+        $totalPaid = $payments->sum('amount_paid');
+
+        // 2. Calcular información de las cuotas
+        $installmentsPaid = $payments->count();
+        $remainingInstallments = $credit->term_months - $installmentsPaid;
+
+        // 3. Calcular la cuota fija mensual estimada (Fórmula de Amortización)
+        $monthlyPayment = 0;
+        $P = $credit->principal_amount; // Principal
+        $i = $credit->interest_rate;  // Tasa de interés mensual
+        $n = $credit->term_months;      // Número de plazos
+
+        if ($i > 0) {
+            $monthlyInterestComponent = $P * ($i * pow(1 + $i, $n)) / (pow(1 + $i, $n) - 1);
+            $monthlyPayment = $monthlyInterestComponent + $credit->fixed_monthly_fee;
+        } else {
+            // Si no hay interés, la cuota es simplemente el capital más la tarifa
+            $monthlyPayment = ($P / $n) + $credit->fixed_monthly_fee;
+        }
+
+        // 4. Calcular el costo total proyectado del crédito
+        $totalProjectedPayment = $monthlyPayment * $n;
+
+        return [
+            'credit' => $credit,
+            'totalPrincipalPaid' => $totalPrincipalPaid,
+            'totalInterestPaid' => $totalInterestPaid,
+            'totalFeesPaid' => $totalFeesPaid,
+            'totalPaid' => $totalPaid,
+            'installmentsPaid' => $installmentsPaid,
+            'remainingInstallments' => $remainingInstallments,
+            'monthlyPayment' => $monthlyPayment,
+            'totalProjectedPayment' => $totalProjectedPayment,
+        ];
     }
 }

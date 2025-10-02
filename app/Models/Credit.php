@@ -17,9 +17,11 @@ class Credit extends Model
         'description',
         'principal_amount',
         'interest_rate',
-        'fixed_monthly_fee', // <-- AÑADIR
+        'fixed_monthly_fee',
         'term_months',
         'current_balance',
+        'accrued_interest_balance',
+        'accrued_fee_balance', // <-- AÑADIR
         'issued_date',
         'payment_day_of_month',
         'last_interest_accrued_on',
