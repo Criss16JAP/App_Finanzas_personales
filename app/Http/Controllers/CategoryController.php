@@ -63,4 +63,11 @@ class CategoryController extends Controller
         $this->categoryService->deleteCategory($category);
         return back()->with('success', '¡Categoría eliminada!');
     }
+
+    public function createDefaults()
+    {
+        $this->categoryService->createDefaultCategories(Auth::user());
+
+        return back()->with('success', '¡Las categorías por defecto han sido creadas!');
+    }
 }

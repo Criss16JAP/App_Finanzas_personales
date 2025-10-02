@@ -74,7 +74,19 @@ class User extends Authenticatable
     }
 
     public function loans(): HasMany
-{
-    return $this->hasMany(Loan::class);
-}
+    {
+        return $this->hasMany(Loan::class);
+    }
+
+    public function credits(): HasMany
+    {
+        return $this->hasMany(Credit::class);
+    }
+
+    public function creditPayments(): HasMany
+    {
+        // Esta puede ser útil más adelante
+        return $this->hasManyThrough(CreditPayment::class, Credit::class);
+    }
+
 }

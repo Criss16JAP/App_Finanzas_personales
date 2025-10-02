@@ -25,7 +25,7 @@ class AccountController extends Controller
     {
         $validatedData = $request->validate([
             'name' => 'required|string|max:255',
-            'type' => 'required|string|in:bank,cash,credit_card,loan',
+            'type' => 'required|string|in:bank,cash,credit_card',
             'balance' => 'required|numeric|min:0',
         ]);
 
@@ -34,11 +34,8 @@ class AccountController extends Controller
         return back()->with('success', '¡Cuenta creada exitosamente!');
     }
 
-    // --- NUEVOS MÉTODOS AÑADIDOS AQUÍ ---
+    // Muestra el formulario para editar una cuenta.
 
-    /**
-     * Muestra el formulario para editar una cuenta.
-     */
     public function edit(Account $account)
     {
         // SEGURIDAD: Verifica que el usuario autenticado es el dueño de la cuenta.

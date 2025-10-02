@@ -12,16 +12,7 @@ class Movement extends Model
 {
     use HasFactory;
 
-    protected $fillable = [
-        'user_id',
-        'account_id',
-        'category_id',
-        'related_account_id',
-        'type',
-        'amount',
-        'description',
-        'movement_date',
-    ];
+    protected $fillable = ['user_id', 'account_id', 'category_id', 'related_account_id', 'type', 'amount', 'description', 'movement_date'];
 
     /**
      * Convierte automáticamente el campo de fecha a un objeto Carbon.
@@ -51,5 +42,11 @@ class Movement extends Model
     public function relatedAccount(): BelongsTo
     {
         return $this->belongsTo(Account::class, 'related_account_id');
+    }
+
+    public function creditPayment(): HasOne
+    {
+        // Añade: use Illuminate\Database\Eloquent\Relations\HasOne;
+        return $this->hasOne(CreditPayment::class);
     }
 }

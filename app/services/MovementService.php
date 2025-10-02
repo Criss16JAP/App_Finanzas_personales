@@ -65,11 +65,14 @@ class MovementService
     }
 
     // El nuevo método createMovement que usa el refactor
-    public function createMovement(array $data, User $user): void
+    public function createMovement(array $data, User $user): Movement // <-- Cambiado de void a Movement
     {
-        DB::transaction(function () use ($data, $user) {
+        // Usamos la función de transacción para que pueda devolver un valor
+        return DB::transaction(function () use ($data, $user) {
             $movement = $user->movements()->create($data);
             $this->executeMovement($movement);
+
+            return $movement; // <-- Devolvemos el movimiento creado
         });
     }
 

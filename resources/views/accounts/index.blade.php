@@ -32,7 +32,6 @@
                                         <option value="bank">Cuenta Bancaria</option>
                                         <option value="cash">Efectivo</option>
                                         <option value="credit_card">Tarjeta de Crédito</option>
-                                        <option value="loan">Préstamo/Deuda</option>
                                     </select>
                                 </div>
                                 <div>

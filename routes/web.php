@@ -7,6 +7,7 @@ use App\Http\Controllers\MovementController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\LoanController;
+use App\Http\Controllers\CreditController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -27,15 +28,21 @@ Route::middleware('auth')->group(function () {
 
     // Rutas para Categorías
     Route::resource('categories', CategoryController::class)->only(['index', 'store', 'edit', 'update', 'destroy']);
+    Route::post('/categories/create-defaults', [CategoryController::class, 'createDefaults'])->name('categories.createDefaults');
 
     // Rutas para Movimientos
     Route::resource('movements', MovementController::class)->only(['index', 'store', 'edit', 'update', 'destroy']);
+
+    // Rutas para Créditos
+    Route::resource('credits', CreditController::class)->only(['index', 'store']);
+    Route::post('/credits/{credit}/pay', [CreditController::class, 'pay'])->name('credits.pay');
 
     // Rutas para Préstamos
     Route::resource('loans', LoanController::class)->only(['index', 'store']);
 
     // NUEVA RUTA PARA REGISTRAR UN ABONO
     Route::post('/loans/{loan}/repay', [LoanController::class, 'repay'])->name('loans.repay');
+
 });
 
 require __DIR__ . '/auth.php';
