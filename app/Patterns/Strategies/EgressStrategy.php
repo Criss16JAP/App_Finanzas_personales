@@ -4,6 +4,7 @@ namespace App\Patterns\Strategies;
 
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use App\Models\Movement;
 
 class EgressStrategy implements MovementStrategyInterface
 {
@@ -26,9 +27,22 @@ class EgressStrategy implements MovementStrategyInterface
 
             // Guardamos los cambios en la cuenta
             $account->save();
-
-            // Finalmente, creamos el registro del movimiento
-            $user->movements()->create($data);
         });
     }
+
+    public function revert(Movement $movement): void
+{
+    DB::transaction(function () use ($movement) {
+        $account = $movement->account;
+        // La lógica es la inversa de 'execute'
+        if ($account->type === 'credit_card') {
+            // Revertir un gasto en tarjeta de crédito DISMINUYE la deuda
+            $account->balance -= $movement->amount;
+        } else {
+            // Revertir un gasto normal DEVUELVE el dinero a la cuenta
+            $account->balance += $movement->amount;
+        }
+        $account->save();
+    });
+}
 }

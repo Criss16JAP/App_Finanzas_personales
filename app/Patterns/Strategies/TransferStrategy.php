@@ -4,6 +4,7 @@ namespace App\Patterns\Strategies;
 
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use App\Models\Movement;
 
 class TransferStrategy implements MovementStrategyInterface
 {
@@ -37,9 +38,30 @@ class TransferStrategy implements MovementStrategyInterface
             // 3. Guardar los cambios en ambas cuentas
             $sourceAccount->save();
             $destinationAccount->save();
-
-            // 4. Crear el registro del movimiento de transferencia
-            $user->movements()->create($data);
         });
     }
+
+    public function revert(Movement $movement): void
+{
+    DB::transaction(function () use ($movement) {
+        $sourceAccount = $movement->account;
+        $destinationAccount = $movement->relatedAccount;
+
+        // 1. Devolver el dinero a la cuenta de ORIGEN
+        $sourceAccount->balance += $movement->amount;
+
+        // 2. Retirar el dinero de la cuenta de DESTINO (lógica inversa de execute)
+        $debtAccountTypes = ['credit_card', 'loan'];
+        if (in_array($destinationAccount->type, $debtAccountTypes)) {
+            // Revertir un pago a una deuda AUMENTA la deuda
+            $destinationAccount->balance += $movement->amount;
+        } else {
+            // Revertir una transferencia a una cuenta normal RESTA el saldo
+            $destinationAccount->balance -= $movement->amount;
+        }
+
+        $sourceAccount->save();
+        $destinationAccount->save();
+    });
+}
 }

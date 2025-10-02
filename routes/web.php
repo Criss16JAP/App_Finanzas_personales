@@ -13,7 +13,8 @@ Route::get('/', function () {
 });
 
 Route::get('/dashboard', [DashboardController::class, 'index'])
-    ->middleware(['auth', 'verified'])->name('dashboard');
+    ->middleware(['auth', 'verified'])
+    ->name('dashboard');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -22,19 +23,13 @@ Route::middleware('auth')->group(function () {
     Route::get('/movements/history', [MovementController::class, 'history'])->name('movements.history');
 
     // Rutas para Cuentas
-    Route::resource('accounts', AccountController::class)->only([
-        'index', 'store', 'edit', 'update', 'destroy'
-    ]);
+    Route::resource('accounts', AccountController::class)->only(['index', 'store', 'edit', 'update', 'destroy']);
 
     // Rutas para Categorías
-    Route::resource('categories', CategoryController::class)->only([
-        'index', 'store', 'edit', 'update', 'destroy'
-    ]);
+    Route::resource('categories', CategoryController::class)->only(['index', 'store', 'edit', 'update', 'destroy']);
 
     // Rutas para Movimientos
-    Route::resource('movements', MovementController::class)->only([
-        'index', 'store'
-    ]);
+    Route::resource('movements', MovementController::class)->only(['index', 'store', 'edit', 'update', 'destroy']);
 
     // Rutas para Préstamos
     Route::resource('loans', LoanController::class)->only(['index', 'store']);
@@ -43,4 +38,4 @@ Route::middleware('auth')->group(function () {
     Route::post('/loans/{loan}/repay', [LoanController::class, 'repay'])->name('loans.repay');
 });
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';
