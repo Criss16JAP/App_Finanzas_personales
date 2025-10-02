@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\MovementController;
@@ -11,14 +12,14 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+Route::get('/dashboard', [DashboardController::class, 'index'])
+    ->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::get('/movements/history', [MovementController::class, 'history'])->name('movements.history');
 
     // Rutas para Cuentas
     Route::resource('accounts', AccountController::class)->only([
@@ -35,7 +36,7 @@ Route::middleware('auth')->group(function () {
         'index', 'store'
     ]);
 
-    // Rutas para Préstamos (NUEVA LÍNEA)
+    // Rutas para Préstamos
     Route::resource('loans', LoanController::class)->only(['index', 'store']);
 
     // NUEVA RUTA PARA REGISTRAR UN ABONO

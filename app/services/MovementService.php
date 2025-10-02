@@ -32,12 +32,12 @@ class MovementService
     }
 
     public function getDataForMovementView(User $user)
-    {
-        return [
-            'accounts' => $user->accounts()->get(),
-            'incomeCategories' => $user->categories()->where('type', 'income')->get(),
-            'egressCategories' => $user->categories()->where('type', 'egress')->get(),
-            'movements' => $user->movements()->with(['account', 'category'])->latest()->take(15)->get(),
-        ];
-    }
+{
+    return [
+        'accounts' => $user->accounts()->get(),
+        'incomeCategories' => $user->categories()->where('type', 'income')->get(),
+        'egressCategories' => $user->categories()->where('type', 'egress')->get(),
+        'movements' => $user->movements()->with(['account', 'category', 'relatedAccount'])->latest()->take(15)->get(),
+    ];
+}
 }

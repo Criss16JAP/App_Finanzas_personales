@@ -9,9 +9,7 @@ use Illuminate\Validation\Rule;
 
 class MovementController extends Controller
 {
-    public function __construct(private MovementService $movementService)
-    {
-    }
+    public function __construct(private MovementService $movementService) {}
 
     public function index()
     {
@@ -41,4 +39,18 @@ class MovementController extends Controller
             return back()->with('error', $e->getMessage());
         }
     }
+
+    public function history()
+{
+    /** @var \App\Models\User $user */ // <-- AÑADE ESTA LÍNEA
+    $user = Auth::user();
+
+    $movements = $user
+        ->movements()
+        ->with(['account', 'category', 'relatedAccount'])
+        ->latest('movement_date')
+        ->paginate(25);
+
+    return view('movements.history', compact('movements'));
+}
 }
