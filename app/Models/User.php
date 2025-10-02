@@ -4,9 +4,10 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\HasMany; // <-- Importante añadir este 'use'
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 class User extends Authenticatable
 {
@@ -83,10 +84,15 @@ class User extends Authenticatable
         return $this->hasMany(Credit::class);
     }
 
-    public function creditPayments(): HasMany
+    public function creditPayments(): HasManyThrough
     {
         // Esta puede ser útil más adelante
         return $this->hasManyThrough(CreditPayment::class, Credit::class);
     }
+
+    public function creditCards(): HasMany
+{
+    return $this->hasMany(CreditCard::class);
+}
 
 }

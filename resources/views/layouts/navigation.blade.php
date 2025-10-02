@@ -21,14 +21,18 @@
                     <x-nav-link :href="route('accounts.index')" :active="request()->routeIs('accounts.index')">
                         Cuentas
                     </x-nav-link>
-                    <x-nav-link :href="route('categories.index')" :active="request()->routeIs('categories.index')">
-                        Categorías
+                    <x-nav-link :href="route('credit-cards.index')" :active="request()->routeIs('credit-cards.*')">
+                        Tarjetas
+                    </x-nav-link>
+                    <x-nav-link :href="route('credits.index')" :active="request()->routeIs('credits.index')">
+                        Créditos
                     </x-nav-link>
                     <x-nav-link :href="route('loans.index')" :active="request()->routeIs('loans.index')">
                         Préstamos
                     </x-nav-link>
-                    <x-nav-link :href="route('credits.index')" :active="request()->routeIs('credits.index')">
-                        Créditos
+
+                    <x-nav-link :href="route('categories.index')" :active="request()->routeIs('categories.index')">
+                        Categorías
                     </x-nav-link>
                 </div>
             </div>
@@ -99,14 +103,18 @@
             <x-nav-link :href="route('accounts.index')" :active="request()->routeIs('accounts.index')">
                 Cuentas
             </x-nav-link>
-            <x-nav-link :href="route('categories.index')" :active="request()->routeIs('categories.index')">
-                Categorías
+            <x-nav-link :href="route('credit-cards.index')" :active="request()->routeIs('credit-cards.*')">
+                Tarjetas
+            </x-nav-link>
+            <x-nav-link :href="route('credits.index')" :active="request()->routeIs('credits.index')">
+                Créditos
             </x-nav-link>
             <x-nav-link :href="route('loans.index')" :active="request()->routeIs('loans.index')">
                 Préstamos
             </x-nav-link>
-            <x-nav-link :href="route('credits.index')" :active="request()->routeIs('credits.index')">
-                Créditos
+
+            <x-nav-link :href="route('categories.index')" :active="request()->routeIs('categories.index')">
+                Categorías
             </x-nav-link>
         </div>
 

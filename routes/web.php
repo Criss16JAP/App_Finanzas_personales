@@ -8,6 +8,9 @@ use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\LoanController;
 use App\Http\Controllers\CreditController;
+use App\Http\Controllers\CreditCardController;
+use App\Http\Controllers\CardPurchaseController;
+
 
 Route::get('/', function () {
     return view('welcome');
@@ -33,6 +36,10 @@ Route::middleware('auth')->group(function () {
 
     // Rutas para Movimientos
     Route::resource('movements', MovementController::class)->only(['index', 'store', 'edit', 'update', 'destroy']);
+
+    //Rutas para Tarjetas de Credito
+    Route::resource('credit-cards', CreditCardController::class)->only(['index', 'store', 'show']);
+    Route::post('/credit-cards/{credit_card}/purchases', [CardPurchaseController::class, 'store'])->name('card-purchases.store');
 
     // Rutas para Créditos
     Route::resource('credits', CreditController::class)->only(['index', 'store', 'show']);
