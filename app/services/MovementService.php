@@ -8,16 +8,18 @@ use App\Patterns\Strategies\EgressStrategy;
 use App\Patterns\Strategies\IncomeStrategy;
 use App\Patterns\Strategies\TransferStrategy;
 use Illuminate\Support\Facades\DB;
+use App\Services\CreditCardService;
+
 
 class MovementService
 {
     protected array $strategies;
 
-    public function __construct()
+    public function __construct(CreditCardService $creditCardService)
     {
         $this->strategies = [
             'income' => new IncomeStrategy(),
-            'egress' => new EgressStrategy(),
+            'egress' => new EgressStrategy($creditCardService),
             'transfer' => new TransferStrategy(),
         ];
     }
@@ -35,8 +37,26 @@ class MovementService
 
     public function getDataForMovementView(User $user)
     {
+        // 1. Obtener todas las cuentas
+        $accounts = $user->accounts()->get();
+        // 2. Obtener todas las tarjetas de crédito y organizarlas por nombre para fácil acceso
+        $creditCards = $user->creditCards()->get()->keyBy('name');
+
+        // 3. Iterar sobre las cuentas para ajustar el saldo de las tarjetas de crédito
+        $accounts->transform(function ($account) use ($creditCards) {
+            if ($account->type === 'credit_card') {
+                // Si encontramos la tarjeta correspondiente
+                if (isset($creditCards[$account->name])) {
+                    $card = $creditCards[$account->name];
+                    // Sobrescribimos el 'balance' para que sea el cupo disponible
+                    $account->balance = $card->credit_limit - $card->current_debt;
+                }
+            }
+            return $account;
+        });
+
         return [
-            'accounts' => $user->accounts()->get(),
+            'accounts' => $accounts, // Ahora esta colección tiene los saldos correctos
             'incomeCategories' => $user->categories()->where('type', 'income')->get(),
             'egressCategories' => $user->categories()->where('type', 'egress')->get(),
             'movements' => $user->movements()->with(['account', 'category', 'relatedAccount'])->latest()->take(15)->get(),
@@ -82,4 +102,5 @@ class MovementService
         $strategy = $this->strategies[$movement->type];
         $strategy->execute($movement->toArray(), $movement->user);
     }
+
 }

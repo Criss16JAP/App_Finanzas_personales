@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Models\Account;
+use App\Observers\AccountObserver;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -19,6 +21,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // 3. AÑADE ESTA LÍNEA
+        Account::observe(AccountObserver::class);
     }
 }

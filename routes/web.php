@@ -39,7 +39,6 @@ Route::middleware('auth')->group(function () {
 
     //Rutas para Tarjetas de Credito
     Route::resource('credit-cards', CreditCardController::class)->only(['index', 'store', 'show']);
-    Route::post('/credit-cards/{credit_card}/purchases', [CardPurchaseController::class, 'store'])->name('card-purchases.store');
 
     // Rutas para Créditos
     Route::resource('credits', CreditController::class)->only(['index', 'store', 'show']);

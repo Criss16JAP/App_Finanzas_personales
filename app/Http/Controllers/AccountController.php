@@ -13,10 +13,22 @@ class AccountController extends Controller
     {
     }
 
-    public function index()
+    public function index() // <-- ASEGÚRATE DE QUE NO DIGA 'public static function'
     {
+        /** @var \App\Models\User $user */
         $user = Auth::user();
-        $accounts = $this->accountService->getAccountsForUser($user);
+
+        $accounts = $user->accounts;
+        $creditCards = $user->creditCards->keyBy('name');
+
+        $accounts->transform(function ($account) use ($creditCards) {
+            if ($account->type === 'credit_card' && isset($creditCards[$account->name])) {
+                $card = $creditCards[$account->name];
+
+                $account->balance = $card->credit_limit - $card->current_debt;
+            }
+            return $account;
+        });
 
         return view('accounts.index', compact('accounts'));
     }

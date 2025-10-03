@@ -5,44 +5,58 @@ namespace App\Patterns\Strategies;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use App\Models\Movement;
+use App\Models\Account;
+use App\Services\CreditCardService;
 
 class EgressStrategy implements MovementStrategyInterface
 {
+    public function __construct(private CreditCardService $creditCardService)
+    {
+    }
+
     public function execute(array $data, User $user): void
     {
-        DB::transaction(function () use ($data, $user) {
-            $account = $user->accounts()->findOrFail($data['account_id']);
+        $account = $user->accounts()->findOrFail($data['account_id']);
 
-            // LÓGICA CONDICIONAL BASADA EN EL TIPO DE CUENTA
-            if ($account->type === 'credit_card') {
-                // Para tarjetas de crédito, un gasto AUMENTA la deuda (el balance)
-                $account->balance += $data['amount'];
-            } else {
-                // Para otras cuentas (banco, efectivo), un gasto DISMINUYE el saldo
+        if ($account->type === 'credit_card') {
+            $creditCard = $user->creditCards()->where('name', $account->name)->firstOrFail();
+
+            $purchaseData = [
+                'description' => $data['description'] ?? 'Gasto general',
+                'purchase_amount' => $data['amount'],
+                'installments' => $data['installments'] ?? 1,
+                'purchase_date' => $data['movement_date'],
+                'category_id' => $data['category_id'],
+            ];
+
+            // Se delega la lógica al servicio, que ahora es seguro llamar
+            $this->creditCardService->addPurchase($creditCard, $purchaseData, $user);
+
+        } else {
+            // Lógica para cuentas normales
+            DB::transaction(function () use ($account, $data) {
                 if ($account->balance < $data['amount']) {
                     throw new \Exception('Saldo insuficiente en la cuenta.');
                 }
                 $account->balance -= $data['amount'];
-            }
-
-            // Guardamos los cambios en la cuenta
-            $account->save();
-        });
+                $account->save();
+            });
+        }
     }
 
     public function revert(Movement $movement): void
-{
-    DB::transaction(function () use ($movement) {
-        $account = $movement->account;
-        // La lógica es la inversa de 'execute'
-        if ($account->type === 'credit_card') {
-            // Revertir un gasto en tarjeta de crédito DISMINUYE la deuda
-            $account->balance -= $movement->amount;
-        } else {
-            // Revertir un gasto normal DEVUELVE el dinero a la cuenta
-            $account->balance += $movement->amount;
-        }
-        $account->save();
-    });
-}
+    {
+        DB::transaction(function () use ($movement) {
+            $account = $movement->account;
+            // La lógica es la inversa de 'execute'
+            if ($account->type === 'credit_card') {
+                // Revertir un gasto en tarjeta de crédito DISMINUYE la deuda
+                $account->balance -= $movement->amount;
+            } else {
+                // Revertir un gasto normal DEVUELVE el dinero a la cuenta
+                $account->balance += $movement->amount;
+            }
+            $account->save();
+        });
+    }
 }

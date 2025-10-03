@@ -21,10 +21,9 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        // $schedule->command('inspire')->hourly();
-
-        // AÑADE ESTA LÍNEA
         $schedule->command('credits:accrue-charges')->daily();
+        $schedule->command('loans:accrue-interest')->daily();
+        $schedule->command('cards:generate-statements')->daily();
     }
 
     /**
@@ -32,9 +31,11 @@ class Kernel extends ConsoleKernel
      */
     protected function commands(): void
     {
-        $this->load(__DIR__.'/Commands');
+        $this->load(__DIR__ . '/Commands');
 
         require base_path('routes/console.php');
     }
+
+
 }
 

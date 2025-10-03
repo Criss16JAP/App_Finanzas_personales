@@ -17,14 +17,16 @@
                 </div>
 
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
-                    <h3 class="text-gray-500 text-sm font-medium uppercase">Ingresos ({{ now()->translatedFormat('F') }})</h3>
+                    <h3 class="text-gray-500 text-sm font-medium uppercase">Ingresos ({{ now()->translatedFormat('F') }})
+                    </h3>
                     <p class="text-3xl font-bold text-green-600 mt-2">
                         $ {{ number_format($monthlyIncome, 2) }}
                     </p>
                 </div>
 
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
-                    <h3 class="text-gray-500 text-sm font-medium uppercase">Gastos ({{ now()->translatedFormat('F') }})</h3>
+                    <h3 class="text-gray-500 text-sm font-medium uppercase">Gastos ({{ now()->translatedFormat('F') }})
+                    </h3>
                     <p class="text-3xl font-bold text-red-600 mt-2">
                         $ {{ number_format($monthlyExpenses, 2) }}
                     </p>
@@ -40,7 +42,7 @@
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
                     <h3 class="text-gray-500 text-sm font-medium uppercase">Deuda Créditos</h3>
                     <p class="text-3xl font-bold text-orange-600 mt-2">
-                        $ {{ number_format($totalLoanDebt, 2) }}
+                        $ {{ number_format($totalCreditDebt, 2) }}
                     </p>
                 </div>
 

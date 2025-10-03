@@ -41,14 +41,16 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <div id="account_id_wrapper">
-                                    <label for="account_id" class="block font-medium text-sm text-gray-700">Cuenta de
-                                        Origen</label>
-                                    <select name="account_id" id="account_id"
-                                        class="block mt-1 w-full rounded-md shadow-sm border-gray-300" required>
+                                    <label for="account_id"
+                                        class="block font-medium text-sm text-gray-700">Cuenta</label>
+                                    <select name="account_id" id="account_id" class="block mt-1 w-full rounded-md"
+                                        required>
                                         <option value="">Selecciona una cuenta</option>
                                         @foreach ($accounts as $account)
-                                            <option value="{{ $account->id }}">{{ $account->name }}
-                                                (${{ number_format($account->balance, 2) }})</option>
+                                            <option value="{{ $account->id }}"
+                                                data-account-type="{{ $account->type }}">{{ $account->name }}
+                                                (${{ number_format($account->balance, 2) }})
+                                            </option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -56,7 +58,7 @@
                                     <label for="egress_category_id"
                                         class="block font-medium text-sm text-gray-700">Categoría del Gasto</label>
                                     <select name="category_id" id="egress_category_id"
-                                        class="block mt-1 w-full rounded-md shadow-sm border-gray-300">
+                                        class="block mt-1 w-full rounded-md">
                                         <option value="">Selecciona una categoría</option>
                                         @foreach ($egressCategories as $category)
                                             <option value="{{ $category->id }}">{{ $category->name }}</option>
@@ -67,7 +69,13 @@
                                     <label for="amount"
                                         class="block font-medium text-sm text-gray-700 mt-4">Monto</label>
                                     <input type="number" name="amount" id="amount" step="0.01" min="0.01"
-                                        class="block mt-1 w-full rounded-md shadow-sm border-gray-300" required>
+                                        class="block mt-1 w-full rounded-md" required>
+                                </div>
+                                <div id="installments_wrapper" class="mt-4 hidden">
+                                    <label for="installments"
+                                        class="block font-medium text-sm text-gray-700">Cuotas</label>
+                                    <input type="number" name="installments" id="installments" min="1"
+                                        class="block mt-1 w-full rounded-md" value="1">
                                 </div>
                             </div>
                             <div>
@@ -75,11 +83,12 @@
                                     <label for="related_account_id"
                                         class="block font-medium text-sm text-gray-700">Cuenta de Destino</label>
                                     <select name="related_account_id" id="related_account_id"
-                                        class="block mt-1 w-full rounded-md shadow-sm border-gray-300">
+                                        class="block mt-1 w-full rounded-md">
                                         <option value="">Selecciona una cuenta</option>
                                         @foreach ($accounts as $account)
                                             <option value="{{ $account->id }}">{{ $account->name }}
-                                                (${{ number_format($account->balance, 2) }})</option>
+                                                (${{ number_format($account->balance, 2) }})
+                                            </option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -87,7 +96,7 @@
                                     <label for="income_category_id"
                                         class="block font-medium text-sm text-gray-700">Categoría del Ingreso</label>
                                     <select name="category_id" id="income_category_id"
-                                        class="block mt-1 w-full rounded-md shadow-sm border-gray-300">
+                                        class="block mt-1 w-full rounded-md">
                                         <option value="">Selecciona una categoría</option>
                                         @foreach ($incomeCategories as $category)
                                             <option value="{{ $category->id }}">{{ $category->name }}</option>
@@ -98,23 +107,20 @@
                                     <label for="movement_date"
                                         class="block font-medium text-sm text-gray-700 mt-4">Fecha</label>
                                     <input type="date" name="movement_date" id="movement_date"
-                                        value="{{ date('Y-m-d') }}"
-                                        class="block mt-1 w-full rounded-md shadow-sm border-gray-300" required>
+                                        value="{{ date('Y-m-d') }}" class="block mt-1 w-full rounded-md" required>
                                 </div>
                                 <div class="mt-4">
                                     <label for="description" class="block font-medium text-sm text-gray-700">Descripción
                                         (Opcional)</label>
                                     <input type="text" name="description" id="description"
-                                        class="block mt-1 w-full rounded-md shadow-sm border-gray-300">
+                                        class="block mt-1 w-full rounded-md">
                                 </div>
                             </div>
                         </div>
-
                         <div class="mt-6">
                             <button type="submit"
-                                class="inline-flex items-center px-4 py-2 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest">
-                                Guardar Movimiento
-                            </button>
+                                class="inline-flex items-center px-4 py-2 bg-gray-800 rounded-md font-semibold text-xs text-white uppercase">Guardar
+                                Movimiento</button>
                         </div>
                     </form>
                 </div>
@@ -187,56 +193,82 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // --- 1. Seleccionar todos los elementos del DOM una sola vez ---
             const typeRadios = document.querySelectorAll('input[name="type"]');
-
             const accountWrapper = document.getElementById('account_id_wrapper');
             const relatedAccountWrapper = document.getElementById('related_account_id_wrapper');
             const incomeCategoryWrapper = document.getElementById('income_category_wrapper');
             const egressCategoryWrapper = document.getElementById('egress_category_wrapper');
+            const installmentsWrapper = document.getElementById('installments_wrapper');
 
             const accountSelect = document.getElementById('account_id');
             const relatedAccountSelect = document.getElementById('related_account_id');
             const incomeCategorySelect = document.getElementById('income_category_id');
             const egressCategorySelect = document.getElementById('egress_category_id');
 
-            function updateFormVisibility() {
-                const selectedType = document.querySelector('input[name="type"]:checked').value;
+            // --- 2. Función para manejar la visibilidad de los campos de cuotas ---
+            function checkInstallmentsVisibility() {
+                // Obtener el tipo de cuenta seleccionada
+                const selectedOption = accountSelect.options[accountSelect.selectedIndex];
+                // Si no hay nada seleccionado, ocultar y salir
+                if (!selectedOption) {
+                    installmentsWrapper.classList.add('hidden');
+                    return;
+                }
+                const accountType = selectedOption.dataset.accountType;
 
-                // Ocultar todo primero
-                relatedAccountWrapper.classList.add('hidden');
-                incomeCategoryWrapper.classList.add('hidden');
+                // Obtener el tipo de movimiento seleccionado
+                const movementType = document.querySelector('input[name="type"]:checked').value;
 
-                // Deshabilitar selects para que no se envíen si están ocultos
-                relatedAccountSelect.name = '';
-                incomeCategorySelect.name = '';
-                egressCategorySelect.name = 'category_id'; // Por defecto es gasto
-
-                accountWrapper.querySelector('label').textContent = 'Cuenta de Origen';
-                accountSelect.name = 'account_id';
-
-                if (selectedType === 'income') {
-                    accountWrapper.querySelector('label').textContent = 'Cuenta de Destino';
-                    incomeCategoryWrapper.classList.remove('hidden');
-                    egressCategoryWrapper.classList.add('hidden');
-
-                    incomeCategorySelect.name = 'category_id';
-                    egressCategorySelect.name = '';
-
-                } else if (selectedType === 'egress') {
-                    egressCategoryWrapper.classList.remove('hidden');
-
-                } else if (selectedType === 'transfer') {
-                    relatedAccountWrapper.classList.remove('hidden');
-                    egressCategoryWrapper.classList.add('hidden');
-
-                    relatedAccountSelect.name = 'related_account_id';
-                    egressCategorySelect.name = '';
+                // La condición clave: mostrar solo si es un egreso Y con tarjeta de crédito
+                if (accountType === 'credit_card' && movementType === 'egress') {
+                    installmentsWrapper.classList.remove('hidden');
+                } else {
+                    installmentsWrapper.classList.add('hidden');
                 }
             }
 
-            typeRadios.forEach(radio => radio.addEventListener('change', updateFormVisibility));
+            // --- 3. Función principal para actualizar la visibilidad del formulario ---
+            function updateFormVisibility() {
+                const selectedType = document.querySelector('input[name="type"]:checked').value;
 
-            // Llamar a la función al cargar la página para establecer el estado inicial
+                // Primero, ocultar todos los campos condicionales para limpiar el estado
+                relatedAccountWrapper.classList.add('hidden');
+                incomeCategoryWrapper.classList.add('hidden');
+                egressCategoryWrapper.classList.add('hidden');
+
+                // Deshabilitar los selects para que no envíen datos si están ocultos
+                relatedAccountSelect.name = '';
+                incomeCategorySelect.name = '';
+                egressCategorySelect.name = '';
+
+                // Restaurar el nombre del select de cuenta principal
+                accountSelect.name = 'account_id';
+
+                // Lógica para mostrar los campos según el tipo de movimiento
+                if (selectedType === 'income') {
+                    accountWrapper.querySelector('label').textContent = 'Cuenta de Destino';
+                    incomeCategoryWrapper.classList.remove('hidden');
+                    incomeCategorySelect.name = 'category_id';
+                } else if (selectedType === 'egress') {
+                    accountWrapper.querySelector('label').textContent = 'Cuenta de Origen';
+                    egressCategoryWrapper.classList.remove('hidden');
+                    egressCategorySelect.name = 'category_id';
+                } else if (selectedType === 'transfer') {
+                    accountWrapper.querySelector('label').textContent = 'Cuenta de Origen';
+                    relatedAccountWrapper.classList.remove('hidden');
+                    relatedAccountSelect.name = 'related_account_id';
+                }
+
+                // Después de cambiar el tipo, siempre verificar si las cuotas deben mostrarse
+                checkInstallmentsVisibility();
+            }
+
+            // --- 4. Asignar los eventos ---
+            typeRadios.forEach(radio => radio.addEventListener('change', updateFormVisibility));
+            accountSelect.addEventListener('change', checkInstallmentsVisibility);
+
+            // --- 5. Llamar a la función al cargar la página para el estado inicial ---
             updateFormVisibility();
         });
     </script>

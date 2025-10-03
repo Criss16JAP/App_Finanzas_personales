@@ -71,13 +71,18 @@
                                     </a>
                                 </h4>
                                 <div class="text-sm text-gray-600 mt-2">
-                                    <p>Cupo: <span
+                                    <p>Cupo Límite: <span
                                             class="font-semibold">${{ number_format($card->credit_limit, 2) }}</span>
                                     </p>
                                     <p>Deuda Actual: <span
                                             class="font-semibold text-red-600">${{ number_format($card->current_debt, 2) }}</span>
                                     </p>
-                                    <p>Interés Mensual: <span
+
+                                    <p>Cupo Disponible: <span
+                                            class="font-semibold text-green-600">${{ number_format($card->credit_limit - $card->current_debt, 2) }}</span>
+                                    </p>
+
+                                    <p class="mt-2">Interés Mensual: <span
                                             class="font-semibold">{{ number_format($card->interest_rate * 100, 2) }}%</span>
                                     </p>
                                     <p>Día de corte: <span class="font-semibold">{{ $card->cutoff_day }}</span> | Día de

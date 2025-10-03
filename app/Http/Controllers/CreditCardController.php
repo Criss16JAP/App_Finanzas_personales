@@ -14,10 +14,14 @@ class CreditCardController extends Controller
     }
 
     public function index()
-    {
-        $creditCards = $this->creditCardService->getCreditCardsForUser(Auth::user());
-        return view('credit-cards.index', compact('creditCards'));
-    }
+{
+    /** @var \App\Models\User $user */
+    $user = Auth::user();
+    // 1. Obtenemos los datos y los guardamos en una variable llamada '$creditCards'
+    $creditCards = $this->creditCardService->getCreditCardsForUser($user);
+    // 2. Usamos compact() para pasar una variable con el nombre EXACTO 'creditCards' a la vista.
+    return view('credit-cards.index', compact('creditCards'));
+}
 
     public function store(Request $request)
     {
@@ -40,18 +44,18 @@ class CreditCardController extends Controller
     }
 
     public function show(CreditCard $credit_card)
-{
-    // Seguridad: verificar que la tarjeta pertenece al usuario
-    if (Auth::id() !== $credit_card->user_id) {
-        abort(403);
+    {
+        // Seguridad: verificar que la tarjeta pertenece al usuario
+        if (Auth::id() !== $credit_card->user_id) {
+            abort(403);
+        }
+
+        // Cargamos las compras de la tarjeta, paginadas
+        $purchases = $credit_card->purchases()->latest('purchase_date')->paginate(15);
+
+        return view('credit-cards.show', [
+            'card' => $credit_card,
+            'purchases' => $purchases,
+        ]);
     }
-
-    // Cargamos las compras de la tarjeta, paginadas
-    $purchases = $credit_card->purchases()->latest('purchase_date')->paginate(15);
-
-    return view('credit-cards.show', [
-        'card' => $credit_card,
-        'purchases' => $purchases,
-    ]);
-}
 }
