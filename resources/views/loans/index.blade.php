@@ -23,12 +23,20 @@
                     @if ($loanCategory)
                         <form action="{{ route('loans.store') }}" method="POST">
                             @csrf
-                            <input type="hidden" name="category_id" value="{{ $loanCategory->id }}">
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            @if ($loanCategory ?? null)
+                                <input type="hidden" name="category_id" value="{{ $loanCategory->id }}">
+                            @else
+                                <div class="bg-yellow-100 border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-4">
+                                    <strong>Atención:</strong> Por favor, crea una categoría de gasto "Préstamos" y una
+                                    de ingreso "Préstamos".
+                                </div>
+                            @endif
+
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                                 <div>
                                     <label for="name">Descripción del Préstamo</label>
                                     <input type="text" name="name" class="block mt-1 w-full rounded-md" required
-                                        placeholder="Ej: Préstamo a mi hermano">
+                                        placeholder="Ej: Préstamo a Duban">
                                 </div>
                                 <div>
                                     <label for="borrower_name">Nombre del Deudor</label>
@@ -36,11 +44,31 @@
                                         required>
                                 </div>
                                 <div>
-                                    <label for="amount">Monto a Prestar</label>
-                                    <input type="number" name="amount" step="0.01" min="0.01"
+                                    <label for="total_amount">Monto a Prestar (Capital)</label>
+                                    <input type="number" name="total_amount" step="0.01" min="0.01"
                                         class="block mt-1 w-full rounded-md" required>
                                 </div>
                                 <div>
+                                    <label for="interest_rate">Tasa de Interés Mensual (%)</label>
+                                    <input type="number" name="interest_rate" step="0.01" min="0"
+                                        class="block mt-1 w-full rounded-md" required placeholder="Ej: 2.5">
+                                </div>
+                                <div>
+                                    <label for="term_months">Plazo (en meses)</label>
+                                    <input type="number" name="term_months" min="1"
+                                        class="block mt-1 w-full rounded-md" required value="1">
+                                </div>
+                                <div>
+                                    <label for="payment_day_of_month">Día de Cobro Mensual</label>
+                                    <input type="number" name="payment_day_of_month" min="1" max="31"
+                                        class="block mt-1 w-full rounded-md" required placeholder="Ej: 30">
+                                </div>
+                                <div>
+                                    <label for="loan_date">Fecha del Préstamo</label>
+                                    <input type="date" name="loan_date" value="{{ date('Y-m-d') }}"
+                                        class="block mt-1 w-full rounded-md" required>
+                                </div>
+                                <div class="md:col-span-2">
                                     <label for="account_id">Sale de la Cuenta</label>
                                     <select name="account_id" class="block mt-1 w-full rounded-md" required>
                                         <option value="">Selecciona una cuenta</option>
@@ -50,11 +78,6 @@
                                             </option>
                                         @endforeach
                                     </select>
-                                </div>
-                                <div>
-                                    <label for="loan_date">Fecha del Préstamo</label>
-                                    <input type="date" name="loan_date" value="{{ date('Y-m-d') }}"
-                                        class="block mt-1 w-full rounded-md" required>
                                 </div>
                             </div>
                             <div class="mt-6">
@@ -75,7 +98,11 @@
 
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900">
-                    <h3 class="text-lg font-medium mb-4">Préstamos Pendientes de Pago</h3>
+                    <h3 class="text-lg font-medium">Préstamos Pendientes de Pago</h3>
+                    <a href="{{ route('loans.history') }}"
+                        class="inline-flex items-center px-4 py-2 bg-gray-200 rounded-md font-semibold text-xs text-gray-800 uppercase hover:bg-gray-300">
+                        Ver Historial
+                    </a>
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead>
@@ -92,7 +119,12 @@
                                 @forelse ($loans as $loan)
                                     <tr>
                                         <td class="px-6 py-4">{{ $loan->loan_date->format('d/m/Y') }}</td>
-                                        <td class="px-6 py-4">{{ $loan->name }}</td>
+                                        <td class="px-6 py-4">
+                                            <a href="{{ route('loans.show', $loan) }}"
+                                                class="font-semibold text-indigo-600 hover:underline">
+                                                {{ $loan->name }}
+                                            </a>
+                                        </td>
                                         <td class="px-6 py-4">{{ $loan->borrower_name }}</td>
                                         <td class="px-6 py-4 text-right font-bold">
                                             ${{ number_format($loan->total_amount - $loan->paid_amount, 2) }}</td>

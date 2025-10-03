@@ -26,30 +26,35 @@ class LoanService
     public function createLoan(array $data, User $user): void
     {
         DB::transaction(function () use ($data, $user) {
-            // 1. Crear el registro del préstamo con los nuevos campos
+            // 1. Crear el registro del préstamo base
             $loan = $user->loans()->create([
                 'name' => $data['name'],
                 'borrower_name' => $data['borrower_name'],
-                'total_amount' => $data['total_amount'],
-                'interest_rate' => $data['interest_rate'] / 100, // Convertir % a decimal
+                'total_amount' => $data['total_amount'], // Capital prestado
+                'interest_rate' => $data['interest_rate'] / 100,
                 'term_months' => $data['term_months'],
                 'payment_day_of_month' => $data['payment_day_of_month'],
                 'loan_date' => $data['loan_date'],
-                'paid_amount' => 0, // Asegurarnos que el monto pagado inicie en 0
                 'status' => 'pending',
             ]);
 
-            // 2. Preparar los datos para registrar la salida de dinero
+            // 2. Lógica del "interés por adelantado"
+            $firstMonthInterest = $loan->total_amount * $loan->interest_rate;
+
+            // 3. Actualizar el préstamo con el interés del primer mes
+            $loan->accrued_interest_balance = $firstMonthInterest;
+            $loan->last_interest_accrued_on = $loan->loan_date; // Marcamos que ya se cobró el interés de este ciclo
+            $loan->save();
+
+            // 4. Registrar el desembolso del dinero (movimiento de gasto)
             $movementData = [
                 'type' => 'egress',
-                'amount' => $data['total_amount'],
+                'amount' => $data['total_amount'], // El gasto es solo por el capital
                 'account_id' => $data['account_id'],
                 'category_id' => $data['category_id'],
                 'description' => "Desembolso de préstamo: {$loan->name}",
                 'movement_date' => $data['loan_date'],
             ];
-
-            // 3. Usar el MovementService para crear el movimiento de gasto
             $this->movementService->createMovement($movementData, $user);
         });
     }
@@ -60,7 +65,7 @@ class LoanService
             $paymentAmount = $data['amount'];
             $amountRemaining = $paymentAmount;
 
-            // 1. Prioridad 1: Cubrir los intereses ganados pendientes
+            // 1. Prioridad 1: Cubrir los intereses ganados que están pendientes
             $interestReceived = min($amountRemaining, $loan->accrued_interest_balance);
             $loan->accrued_interest_balance -= $interestReceived;
             $amountRemaining -= $interestReceived;
@@ -79,14 +84,14 @@ class LoanService
             ];
             $movement = $this->movementService->createMovement($movementData, $loan->user);
 
-            // 4. Actualizar el monto de capital pagado en el préstamo
+            // 4. Actualizar el monto de capital que te han pagado
             $loan->paid_amount += $principalReceived;
             if ($loan->paid_amount >= $loan->total_amount) {
                 $loan->status = 'paid';
             }
             $loan->save();
 
-            // 5. Crear el registro detallado del pago recibido
+            // 5. Crear el registro detallado del pago recibido en 'loan_payments'
             $loan->payments()->create([
                 'movement_id' => $movement->id,
                 'amount_received' => $paymentAmount,
@@ -95,5 +100,42 @@ class LoanService
                 'payment_date' => now(),
             ]);
         });
+    }
+
+    public function getDataForLoanDetailView(Loan $loan)
+    {
+        $payments = $loan->payments;
+
+        $totalPrincipalReceived = $payments->sum('principal_received');
+        $totalInterestReceived = $payments->sum('interest_received');
+        $totalReceived = $payments->sum('amount_received');
+
+        $installmentsReceived = $payments->count();
+        $remainingInstallments = $loan->term_months - $installmentsReceived;
+
+        // Calcular la cuota fija mensual estimada (Fórmula de Amortización)
+        $monthlyPayment = 0;
+        $P = $loan->total_amount; // Principal
+        $i = $loan->interest_rate;  // Tasa de interés mensual
+        $n = $loan->term_months;      // Número de plazos
+
+        if ($i > 0) {
+            $monthlyPayment = $P * ($i * pow(1 + $i, $n)) / (pow(1 + $i, $n) - 1);
+        } else if ($n > 0) {
+            $monthlyPayment = $P / $n;
+        }
+
+        $totalProjectedIncome = $monthlyPayment * $n;
+
+        return [
+            'loan' => $loan,
+            'totalPrincipalReceived' => $totalPrincipalReceived,
+            'totalInterestReceived' => $totalInterestReceived,
+            'totalReceived' => $totalReceived,
+            'installmentsReceived' => $installmentsReceived,
+            'remainingInstallments' => $remainingInstallments,
+            'monthlyPayment' => $monthlyPayment,
+            'totalProjectedIncome' => $totalProjectedIncome,
+        ];
     }
 }

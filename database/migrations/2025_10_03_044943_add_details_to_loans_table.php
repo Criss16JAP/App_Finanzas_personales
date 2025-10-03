@@ -4,8 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     public function up(): void
     {
         Schema::table('loans', function (Blueprint $table) {
@@ -21,8 +20,11 @@ return new class extends Migration
     {
         Schema::table('loans', function (Blueprint $table) {
             $table->dropColumn([
-                'interest_rate', 'term_months', 'payment_day_of_month',
-                'accrued_interest_balance', 'last_interest_accrued_on'
+                'interest_rate',
+                'term_months',
+                'payment_day_of_month',
+                'accrued_interest_balance',
+                'last_interest_accrued_on'
             ]);
         });
     }

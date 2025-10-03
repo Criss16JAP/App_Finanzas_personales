@@ -45,10 +45,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/credits/{credit}/pay', [CreditController::class, 'pay'])->name('credits.pay');
 
     // Rutas para Préstamos
-    Route::resource('loans', LoanController::class)->only(['index', 'store']);
-
-    // NUEVA RUTA PARA REGISTRAR UN ABONO
+    Route::get('/loans/history', [LoanController::class, 'history'])->name('loans.history');
     Route::post('/loans/{loan}/repay', [LoanController::class, 'repay'])->name('loans.repay');
+    Route::resource('loans', LoanController::class)->only(['index', 'store', 'show']);
 
 });
 

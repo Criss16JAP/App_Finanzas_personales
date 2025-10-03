@@ -15,7 +15,7 @@ class LoanController extends Controller
 
     public function index()
     {
-        /** @var \App\Models\User $user */ // <-- AÑADE ESTA LÍNEA
+        /** @var \App\Models\User $user */
         $user = Auth::user();
 
         // Le pedimos al servicio los datos que la vista necesita
@@ -49,22 +49,22 @@ class LoanController extends Controller
 
     public function repay(Request $request, Loan $loan)
     {
-        /** @var \App\Models\User $user */ // <-- AÑADE ESTA LÍNEA
+        /** @var \App\Models\User $user */
         $user = Auth::user();
 
-        // Seguridad
-        if ($user->id !== $loan->user_id) { // <-- También actualiza esta línea para usar $user
+        if ($user->id !== $loan->user_id) {
             abort(403);
         }
 
-        $remainingBalance = ($loan->total_amount - $loan->paid_amount) + $loan->accrued_interest_balance;
+        $principalOwed = $loan->total_amount - $loan->paid_amount;
+        $totalOwed = $principalOwed + $loan->accrued_interest_balance;
 
         $validatedData = $request->validate([
-            'amount' => "required|numeric|min:0.01|lte:{$remainingBalance}",
+            'amount' => "required|numeric|min:0.01|lte:{$totalOwed}",
             'account_id' => 'required|exists:accounts,id',
         ]);
 
-        // El pago de un préstamo es un INGRESO en la categoría 'Préstamos'
+        // Un abono recibido es un INGRESO en la categoría 'Préstamos'
         $loanCategory = $user->categories()->where('name', 'Préstamos')->where('type', 'income')->first();
         if (!$loanCategory) {
             return back()->with('error', 'Por favor, crea una categoría de INGRESO llamada "Préstamos".');
@@ -77,5 +77,29 @@ class LoanController extends Controller
         } catch (\Exception $e) {
             return back()->with('error', 'Error al registrar el abono: ' . $e->getMessage());
         }
+    }
+
+    public function show(Loan $loan)
+    {
+        if (Auth::id() !== $loan->user_id) {
+            abort(403);
+        }
+
+        $data = $this->loanService->getDataForLoanDetailView($loan);
+        return view('loans.show', $data);
+    }
+
+    public function history()
+    {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        $loans = $user
+            ->loans()
+            ->where('status', 'paid') // <-- La clave: solo obtenemos los pagados
+            ->orderBy('loan_date', 'desc')
+            ->paginate(15);
+
+        return view('loans.history', compact('loans'));
     }
 }

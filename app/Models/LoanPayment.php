@@ -10,6 +10,11 @@ class LoanPayment extends Model
 {
     use HasFactory;
 
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array<int, string>
+     */
     protected $fillable = [
         'loan_id',
         'movement_id',
@@ -19,15 +24,26 @@ class LoanPayment extends Model
         'payment_date',
     ];
 
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array<string, string>
+     */
     protected $casts = [
         'payment_date' => 'date',
     ];
 
+    /**
+     * Get the loan that the payment belongs to.
+     */
     public function loan(): BelongsTo
     {
         return $this->belongsTo(Loan::class);
     }
 
+    /**
+     * Get the movement associated with the payment.
+     */
     public function movement(): BelongsTo
     {
         return $this->belongsTo(Movement::class);

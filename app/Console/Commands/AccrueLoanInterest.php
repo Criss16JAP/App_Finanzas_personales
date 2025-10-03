@@ -19,24 +19,32 @@ class AccrueLoanInterest extends Command
         $activeLoans = Loan::where('status', 'pending')->get();
 
         foreach ($activeLoans as $loan) {
+            // La fecha de cargo es 5 días antes del día de cobro establecido
             $chargeDate = now()->setDay($loan->payment_day_of_month)->subDays(5)->startOfDay();
 
+            // Verificamos si hoy es el día de cargo y si no se ha ejecutado ya en este ciclo de pago.
+            // Gracias a que 'last_interest_accrued_on' se establece al crear el préstamo,
+            // esta condición saltará el primer mes automáticamente.
             if ($today->isSameDay($chargeDate) && (is_null($loan->last_interest_accrued_on) || $loan->last_interest_accrued_on < $chargeDate)) {
 
                 DB::transaction(function () use ($loan, $today) {
-                    // Calcular interés sobre el capital pendiente
+                    // Calcular interés sobre el capital pendiente de cobro
                     $principalOwed = $loan->total_amount - $loan->paid_amount;
-                    $interest = $principalOwed * $loan->interest_rate;
 
-                    // Sumar el interés al contador de intereses pendientes
-                    $loan->accrued_interest_balance += $interest;
+                    // Solo calculamos interés si aún se debe capital
+                    if ($principalOwed > 0) {
+                        $interest = $principalOwed * $loan->interest_rate;
 
-                    // Actualizar la fecha del último cargo
-                    $loan->last_interest_accrued_on = $today;
+                        // Sumar el interés al contador de intereses pendientes por cobrar
+                        $loan->accrued_interest_balance += $interest;
 
-                    $loan->save();
+                        // Actualizar la fecha del último cargo
+                        $loan->last_interest_accrued_on = $today;
 
-                    $this->info("Interest accrued for loan '{$loan->name}'. Interest: {$interest}");
+                        $loan->save();
+
+                        $this->info("Interest accrued for loan '{$loan->name}'. Interest: {$interest}");
+                    }
                 });
             }
         }
