@@ -9,7 +9,6 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\LoanController;
 use App\Http\Controllers\CreditController;
 use App\Http\Controllers\CreditCardController;
-use App\Http\Controllers\CardPurchaseController;
 
 
 Route::get('/', function () {
